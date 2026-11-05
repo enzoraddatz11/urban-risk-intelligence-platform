@@ -1,0 +1,14 @@
+target/
+data/
+*.mv.db
+*.h2.db
+*.trace.db
+*.lock.db
+*.temp.db
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+*.bak
+*.swp

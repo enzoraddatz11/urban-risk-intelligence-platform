@@ -1,0 +1,52 @@
+# IDE / sistema
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+# Configuração local e credenciais
+.env
+.env.*
+!.env.example
+.npmrc
+!.npmrc.example
+.aws/
+.ssh/
+.secrets/
+*.pem
+*.key
+*.jks
+*.p8
+*.p12
+*.mobileprovision
+# Java / H2
+**/target/
+/backend/data/
+*.mv.db
+*.h2.db
+*.trace.db
+*.lock.db
+*.temp.db
+# Ferramentas locais
+.tools/
+# Expo / Node e artefatos gerados
+**/node_modules/
+**/.expo/
+**/dist/
+build/
+web-build/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+npm-debug.log*
+*.log
+# Arquivos temporários e cópias locais
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
