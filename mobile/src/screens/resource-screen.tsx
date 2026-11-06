@@ -5,6 +5,8 @@ import { AppIcon } from '@/components/app-icon';
 import { ResourceCard } from '@/components/resource-card';
 import { Button, EmptyState, ErrorNotice, Loading, Screen, common } from '@/components/ui';
 import { useResourceList } from '@/hooks/use-resource-list';
+import { useRelatedRecords } from '@/hooks/use-related-records';
+import { relatedRecord } from '@/features/related-records';
 import { resources } from '@/features/resources';
 import { colors, radii, spacing } from '@/theme';
 import type { Resource } from '@/types/api';
@@ -12,17 +14,23 @@ import type { Resource } from '@/types/api';
 export function ResourceScreen({ group, selected: resource, onSelect }: { group: Resource[]; selected: Resource; onSelect: (resource: Resource) => void }) {
   const navigation = useNavigation();
   const result = useResourceList(resource);
+  const related = useRelatedRecords(resource);
+  const refresh = () => { void result.reload(); void related.reload(); };
   const definition = resources[resource];
   const [query, setQuery] = useState('');
   useLayoutEffect(() => { navigation.setOptions({ title: definition.title }); setQuery(''); }, [navigation, definition.title]);
   const filtered = useMemo(() => {
     const value = query.trim().toLocaleLowerCase('pt-BR');
-    return value ? result.items.filter(item => Object.values(item).some(field => String(field).toLocaleLowerCase('pt-BR').includes(value))) : result.items;
-  }, [result.items, query]);
+    return value ? result.items.filter(item => {
+      const reference = relatedRecord(item, resource, related.items);
+      return [...Object.values(item), reference?.name ?? '', reference && 'unit' in reference ? reference.unit : '']
+        .some(field => String(field).toLocaleLowerCase('pt-BR').includes(value));
+    }) : result.items;
+  }, [result.items, query, resource, related.items]);
   return <Screen>
     <FlatList data={filtered} keyExtractor={item => resource + item.id} contentContainerStyle={common.content}
       contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={result.refreshing} onRefresh={() => result.reload()} tintColor={colors.cyan} />}
+      refreshControl={<RefreshControl refreshing={result.refreshing} onRefresh={refresh} tintColor={colors.cyan} />}
       ListHeaderComponent={<View style={{ gap: spacing.lg }}>
         <View style={{ flexDirection: 'row', gap: 5, padding: 5, backgroundColor: colors.surface, borderRadius: radii.md, borderCurve: 'continuous', borderWidth: 1, borderColor: colors.border }}>
           {group.map(key => <Pressable key={key} accessibilityRole="tab" accessibilityLabel={resources[key].title} accessibilityState={{ selected: key === resource }}
@@ -37,7 +45,7 @@ export function ResourceScreen({ group, selected: resource, onSelect }: { group:
           </View>
           <View style={common.row}>
             <Button title={resource === 'readings' ? 'Nova leitura' : 'Novo ' + definition.singular} onPress={() => router.push({ pathname: '/create', params: { resource } })} icon="add" />
-            <Button title="Atualizar" secondary icon="refresh-outline" onPress={() => result.reload()} disabled={result.loading || result.refreshing} />
+            <Button title="Atualizar" secondary icon="refresh-outline" onPress={refresh} disabled={result.loading || result.refreshing} />
           </View>
         </View>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, borderRadius: radii.sm, paddingHorizontal: 14 }}>
@@ -50,11 +58,16 @@ export function ResourceScreen({ group, selected: resource, onSelect }: { group:
           <Text selectable style={{ ...common.subtitle, fontSize: 12 }}>{result.loading ? 'Consultando registros…' : query ? filtered.length + ' resultado(s) em ' + result.items.length + ' carregados' : result.total + ' registro(s)'}</Text>
           <Text style={{ color: colors.dim, fontSize: 10 }}>MAIS RECENTES PRIMEIRO</Text>
         </View>
-        {!!result.error && <ErrorNotice message={result.error} onRetry={() => result.reload()} />}
+        {!!result.error && <ErrorNotice message={result.error} onRetry={refresh} />}
+        {related.loading && !result.loading && <Text style={common.subtitle}>Consultando componentes relacionados…</Text>}
+        {!!related.error && <View style={{ ...common.card, gap: spacing.sm }}>
+          <Text accessibilityRole="alert" selectable style={common.subtitle}>{related.error}</Text>
+          <Button title="Atualizar referências" secondary icon="refresh-outline" onPress={() => { void related.reload(); }} />
+        </View>}
       </View>}
       ListEmptyComponent={result.loading ? <Loading /> : result.error ? undefined : <EmptyState title={query ? 'Nenhum resultado encontrado' : undefined}
         description={query ? 'Tente outro termo, limpe a busca ou carregue mais registros.' : 'Cadastre o primeiro registro de ' + definition.title.toLocaleLowerCase('pt-BR') + ' usando o botão acima.'} />}
-      renderItem={({ item }) => <ResourceCard item={item} resource={resource} />}
+      renderItem={({ item }) => <ResourceCard item={item} resource={resource} related={related.items} />}
       ListFooterComponent={result.hasMore && !result.loading ? <Button title="Carregar mais" secondary busy={result.loadingMore} onPress={result.loadMore} /> : undefined}
     />
   </Screen>;

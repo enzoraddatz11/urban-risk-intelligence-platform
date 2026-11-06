@@ -24,6 +24,7 @@ export function CreateScreen({ resource }: { resource: Resource }) {
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<number | null>(null);
+  const [savedLabel, setSavedLabel] = useState('');
   const [options, setOptions] = useState<Option[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [optionsError, setOptionsError] = useState('');
@@ -60,6 +61,8 @@ export function CreateScreen({ resource }: { resource: Resource }) {
       }
       savingRef.current = true; setSaving(true);
       const created = await api.create(resource, payload);
+      setSavedLabel('name' in created ? created.name : 'title' in created ? created.title
+        : 'Leitura de ' + (options.find(option => option.value === String(created.sensorId))?.label ?? 'sensor #' + created.sensorId));
       setSavedId(created.id);
       if (process.env.EXPO_OS === 'ios') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     } catch (error) {
@@ -73,7 +76,9 @@ export function CreateScreen({ resource }: { resource: Resource }) {
       <Animated.View entering={SUCCESS_ENTER} style={[common.card, { alignItems: 'center', paddingVertical: 36 }]}>
         <AppIcon name="checkmark-circle-outline" size={58} color={colors.green} />
         <Text style={[common.title, { textAlign: 'center' }]}>Cadastro confirmado</Text>
-        <Text selectable style={[common.subtitle, { textAlign: 'center' }]}>O registro #{savedId} foi salvo pela API. A listagem será atualizada ao voltar.</Text>
+        <Text selectable style={[common.subtitle, { textAlign: 'center', color: colors.text }]}>{savedLabel}</Text>
+        <Text selectable style={[common.subtitle, { textAlign: 'center', fontSize: 11 }]}>Identificador #{savedId} · salvo pela API.</Text>
+        <Text selectable style={[common.subtitle, { textAlign: 'center' }]}>A listagem será atualizada ao voltar.</Text>
         <Button title="Voltar à lista" icon="arrow-back" onPress={() => router.back()} />
       </Animated.View>
     </ScrollView>

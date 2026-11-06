@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { AppIcon, type IconName } from '@/components/app-icon';
 import { Button, ErrorNotice, Loading, Screen, StatusBadge, common } from '@/components/ui';
 import { MissionOrbit } from '@/components/mission-orbit';
+import { ProjectIntroduction } from '@/components/project-introduction';
 import { HealthPanel } from '@/components/health-panel';
 import { TelemetryPanel } from '@/components/telemetry-panel';
 import { colors, radii, spacing, typography } from '@/theme';
@@ -39,8 +40,9 @@ export function DashboardScreen() {
   return <Screen>
     <ScrollView contentInsetAdjustmentBehavior="automatic" contentContainerStyle={common.content} keyboardShouldPersistTaps="handled"
       refreshControl={<RefreshControl refreshing={loading && !!data} onRefresh={refresh} tintColor={colors.cyan} />}>
-      <View style={{ ...common.row, justifyContent: 'space-between' }}>
-        <View style={{ gap: 4 }}><Text style={common.eyebrow}>SPACE MISSION CONTROL</Text><Text style={common.subtitle}>Centro de operações · FIAP</Text></View>
+      <ProjectIntroduction />
+      <View testID="operational-header" style={{ ...common.row, justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: colors.border, paddingTop: spacing.lg }}>
+        <View style={{ gap: 4, flexGrow: 1, flexBasis: 240, minWidth: 0 }}><Text accessibilityRole="header" style={common.eyebrow}>CENTRAL DE MONITORAMENTO</Text><Text selectable style={common.subtitle}>Dados operacionais da missão AURORA-1</Text></View>
         <Button title={loading ? 'Atualizando…' : 'Atualizar dados'} secondary icon="refresh-outline" onPress={refresh} disabled={loading} />
       </View>
       {!!error && <ErrorNotice message={error} onRetry={refresh} />}

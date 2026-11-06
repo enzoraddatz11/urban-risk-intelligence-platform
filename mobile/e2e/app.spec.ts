@@ -15,8 +15,14 @@ test('dashboard real, sete telas, formulários e cadastro de módulo', async ({ 
   page.on('pageerror', error => runtimeErrors.push(error.message));
   page.on('console', message => { if (/Invalid DOM property|non-boolean attribute/.test(message.text())) runtimeErrors.push(message.text()); });
   await page.goto('/');
+  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
   await expect(page.getByText('Visão da missão', { exact: true })).toBeVisible();
   await expect(page.getByText('Última consulta:', { exact: false })).toBeVisible();
+  const missionHeading = page.getByText('SITUAÇÃO DA MISSÃO', { exact: true });
+  await missionHeading.scrollIntoViewIfNeeded();
+  await expect(missionHeading).toBeInViewport();
+  await expect(page.getByRole('button', { name: /^Sensores: / })).toBeVisible();
   const tabLabel = await page.getByText('Visão geral', { exact: true }).boundingBox();
   expect(tabLabel).not.toBeNull();
   expect(tabLabel!.height).toBeGreaterThanOrEqual(12);
@@ -81,6 +87,8 @@ test('dashboard real, sete telas, formulários e cadastro de módulo', async ({ 
 test('falha de consulta e recuperação com resposta real', async ({ page }) => {
   await page.route('**/api/mission/status', route => route.abort('failed'));
   await page.goto('/');
+  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
   await expect(page.getByText('Não foi possível acessar a API.', { exact: false })).toBeVisible();
   await expect(page.getByText('Nenhum registro por aqui', { exact: true })).toHaveCount(0);
   await page.unroute('**/api/mission/status');
@@ -90,6 +98,8 @@ test('falha de consulta e recuperação com resposta real', async ({ page }) => 
 
 test('seletor pesquisável e retorno sem resultados', async ({ page }) => {
   await page.goto('/');
+  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
+  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
   await expect(page.getByText('Última consulta:', { exact: false })).toBeVisible();
   await page.getByRole('button', { name: /^Sensores: / }).click();
   await page.getByRole('button', { name: 'Novo sensor', exact: true }).click();

@@ -48,7 +48,8 @@ async function stop(child) {
 async function start(database, seedEnabled, webPort) {
   let output = '';
   const child = spawn(java, ['-jar', jar,
-    '--server.port=0', '--spring.datasource.url=jdbc:h2:file:' + join(directory, database).replaceAll('\\', '/'),
+    // No Windows, SIGTERM encerra sem hooks: confirma os commits no arquivo antes de testar o reinício.
+    '--server.port=0', '--spring.datasource.url=jdbc:h2:file:' + join(directory, database).replaceAll('\\', '/') + ';WRITE_DELAY=0',
     '--app.seed-enabled=' + seedEnabled, '--app.cors-origins=http://localhost:' + webPort,
     '--spring.main.banner-mode=off', '--logging.level.root=INFO', '--debug=false',
   ], { cwd: join(project, 'backend'), stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });

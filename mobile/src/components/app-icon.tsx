@@ -4,6 +4,7 @@ import type { ComponentProps } from 'react';
 import { View, type ColorValue } from 'react-native';
 
 const symbols = {
+  'person-outline': ['person.crop.circle', 'person-outline'],
   'planet-outline': ['globe.americas', 'public'],
   'grid-outline': ['square.grid.2x2', 'dashboard'],
   'radio-outline': ['antenna.radiowaves.left.and.right', 'sensors'],

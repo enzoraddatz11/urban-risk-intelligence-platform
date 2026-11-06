@@ -13,11 +13,16 @@ Thumbs.db
 .aws/
 .ssh/
 .secrets/
+.credentials/
+.envrc
+.netrc
 *.pem
 *.key
 *.jks
 *.p8
 *.p12
+*.pfx
+*.keystore
 *.mobileprovision
 # Java / H2
 **/target/
@@ -29,6 +34,9 @@ Thumbs.db
 *.temp.db
 # Ferramentas locais
 .tools/
+.agents/
+.codex/
+skills-lock.json
 # Expo / Node e artefatos gerados
 **/node_modules/
 **/.expo/
@@ -41,12 +49,18 @@ playwright-report/
 *.tsbuildinfo
 npm-debug.log*
 *.log
+.cache/
 # Arquivos temporários e cópias locais
 tmp/
 temp/
+backup/
+backups/
 *.tmp
 *.temp
 *.bak
+*.backup
+*.orig
+*.rej
 *.swp
 *.swo
 *~

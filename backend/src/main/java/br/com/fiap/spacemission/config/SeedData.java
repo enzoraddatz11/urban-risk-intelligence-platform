@@ -37,10 +37,10 @@ public class SeedData implements ApplicationRunner {
         SensorReading reading = new SensorReading();
         reading.sensor=sensor; reading.value=new BigDecimal("24.5"); reading.recordedAt=Instant.now(); readings.save(reading);
         OperationalEvent event = new OperationalEvent();
-        event.system=system; event.title="Telemetria recebida"; event.description="Primeiro pacote de exemplo";
+        event.system=system; event.title="Telemetria recebida"; event.description="Primeiro pacote de telemetria ambiental recebido pelo sistema de suporte à vida da missão AURORA-1.";
         event.severity=Severity.INFO; event.occurredAt=Instant.now(); events.save(event);
         CriticalAlert alert = new CriticalAlert();
-        alert.system=system; alert.title="Verificar suporte à vida"; alert.description="Alerta de demonstração para teste do painel";
+        alert.system=system; alert.title="Verificar suporte à vida"; alert.description="Verificação dos parâmetros ambientais do suporte à vida, com acompanhamento da equipe de operação da missão AURORA-1.";
         alert.status=AlertStatus.ACTIVE; alert.occurredAt=Instant.now(); alerts.save(alert);
     }
 }
