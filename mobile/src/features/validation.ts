@@ -1,5 +1,6 @@
 import type { RequestMap, Resource } from '../types/api';
 import { resources } from './resources';
+import { findPersonalData, PRIVACY_MESSAGE } from './privacy';
 
 export type FormValues = Record<string, string>;
 export class FormValidationError extends Error {
@@ -17,7 +18,13 @@ export function buildPayload<K extends Resource>(resource: K, values: FormValues
     const value = (values[field.key] ?? '').trim();
     if (!value) { errors[field.key] = 'Campo obrigatório.'; continue; }
     if (field.max && value.length > field.max) { errors[field.key] = 'Use até ' + field.max + ' caracteres.'; continue; }
-    if (field.kind === 'relation') {
+    if (field.privacy && findPersonalData(value).length) { errors[field.key] = PRIVACY_MESSAGE; continue; }
+    if (field.kind === 'integer') {
+      const numeric = Number(value);
+      if (!/^-?\d{1,9}$/.test(value)) errors[field.key] = 'Informe um número inteiro.';
+      else if (field.min !== undefined && numeric < field.min || field.maxValue !== undefined && numeric > field.maxValue) errors[field.key] = 'Use um valor entre ' + field.min + ' e ' + field.maxValue + '.';
+      else payload[field.key] = numeric;
+    } else if (field.kind === 'relation') {
       if (!/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) <= 0) {
         errors[field.key] = 'Selecione um registro válido.';
       } else payload[field.key] = Number(value);
@@ -33,6 +40,8 @@ export function buildPayload<K extends Resource>(resource: K, values: FormValues
         const canonical = (text: string) => text.replace(/^(-?)0+(?=\d)/, '$1').replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '').replace(/^-0$/, '0');
         if (canonical(numeric.toFixed(fraction)) !== canonical(normalized)) {
           errors[field.key] = 'Este valor excede a precisão numérica do aplicativo. Use menos casas decimais.';
+        } else if (field.min !== undefined && numeric < field.min || field.maxValue !== undefined && numeric > field.maxValue) {
+          errors[field.key] = 'Use um valor entre ' + field.min + ' e ' + field.maxValue + '.';
         } else payload[field.key] = numeric;
       }
     } else if (field.kind === 'date') {

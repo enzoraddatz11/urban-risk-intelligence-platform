@@ -1,4 +1,4 @@
-import type { ApiErrorBody, EntityMap, MissionStatus, Page, RequestMap, Resource } from '../types/api';
+import type { ApiErrorBody, CityStatus, EntityMap, Page, PrioritizedAlert, RequestMap, Resource } from '../types/api';
 
 export class ApiError extends Error {
   constructor(message: string, public readonly status: number, public readonly fields: Record<string, string> = {}) {
@@ -36,7 +36,8 @@ export function createApiClient(baseUrl: string, fetcher: ApiFetch = fetch, time
   return {
     readingsForSensor: (sensorId: number) =>
       request<Page<EntityMap['readings']>>('/readings?sensorId=' + sensorId + '&page=0&size=24'),
-    missionStatus: () => request<MissionStatus>('/mission/status'),
+    status: () => request<CityStatus>('/status'),
+    alerts: (regionId?: number) => request<PrioritizedAlert[]>('/alerts?limit=50' + (regionId ? '&regionId=' + regionId : '')),
     list: <K extends Resource>(resource: K, page = 0, size = 20) =>
       request<Page<EntityMap[K]>>('/' + resource + '?page=' + page + '&size=' + size),
     get: <K extends Resource>(resource: K, id: number) => request<EntityMap[K]>('/' + resource + '/' + id),

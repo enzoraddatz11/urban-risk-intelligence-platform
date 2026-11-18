@@ -1,10 +1,4 @@
-import type { EntityMap, MissionStatus } from '@/types/api';
-export function componentHealth(mission: MissionStatus) {
-  const total = mission.modules + mission.sensors + mission.systems;
-  const operational = Math.max(0, total - mission.offlineComponents - mission.degradedComponents);
-  return { total, operational, degraded: mission.degradedComponents, offline: mission.offlineComponents,
-    percentage: total > 0 ? Math.round(100 * operational / total) : null };
-}
+import type { EntityMap } from '@/types/api';
 export function prepareReadings(readings: EntityMap['readings'][], sensorId: number) {
   return readings.filter(reading => reading.sensorId === sensorId && Number.isFinite(reading.value) && Number.isFinite(Date.parse(reading.recordedAt)))
     .sort((a, b) => Date.parse(a.recordedAt) - Date.parse(b.recordedAt) || a.id - b.id);
