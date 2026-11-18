@@ -7,10 +7,10 @@ export function TeamMemberCard({ member, index, wide }: {
 }) {
   return <View testID="team-member-card" style={{ flexGrow: 1, flexBasis: wide ? '30%' : '100%',
     minWidth: wide ? 190 : 0, padding: spacing.sm, gap: spacing.xs,
-    borderWidth: 1, borderColor: '#24404F', borderRadius: radii.sm, borderCurve: 'continuous', backgroundColor: '#0C2030' }}>
+    borderWidth: 1, borderColor: colors.border, borderRadius: radii.sm, borderCurve: 'continuous', backgroundColor: colors.raised }}>
     <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
-      <View style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, backgroundColor: '#10353A', alignItems: 'center', justifyContent: 'center' }}>
-        <AppIcon name="person-outline" color={colors.cyan} size={20} />
+      <View style={{ width: 32, height: 32, flexShrink: 0, borderRadius: 10, backgroundColor: colors.accentSoft, alignItems: 'center', justifyContent: 'center' }}>
+        <AppIcon name="person-outline" color={colors.accent} size={20} />
       </View>
       <View style={{ flex: 1, minWidth: 0, gap: 3 }}>
         <Text selectable style={{ color: colors.text, fontSize: 13, lineHeight: 19, flexShrink: 1, fontWeight: '600' }}>{member.name}</Text>

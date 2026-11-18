@@ -8,9 +8,9 @@ export function NativeEnumPicker({ label, options, value, onChange, disabled, er
   label: string; options: Option[]; value: string; onChange: (value: string) => void; disabled?: boolean; error?: string;
 }) {
   return <View style={{ gap: 8 }}>
-    <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{label} <Text style={{ color: colors.cyan }}>*</Text></Text>
+    <Text style={{ color: colors.text, fontSize: 14, fontWeight: '600' }}>{label} <Text style={{ color: colors.accent }}>*</Text></Text>
     <View style={{ borderRadius: radii.sm, borderWidth: 1, borderColor: error ? colors.red : colors.border, padding: 8, minHeight: 52, backgroundColor: colors.raised }}>
-      <Host matchContents colorScheme="dark" seedColor={colors.cyan} style={{ width: '100%' }}>
+      <Host matchContents colorScheme="dark" seedColor={colors.accent} style={{ width: '100%' }}>
         <Picker selectedValue={value} onValueChange={onChange} enabled={!disabled} testID={label}>
           {options.map(option => <Picker.Item key={option.value} value={option.value} label={option.label} />)}
         </Picker>

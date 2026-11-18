@@ -27,24 +27,24 @@ export function ResourceScreen({ group, selected: resource, onSelect }: { group:
         .some(field => String(field).toLocaleLowerCase('pt-BR').includes(value));
     }) : result.items;
   }, [result.items, query, resource, related.items]);
-  return <Screen>
+  return <Screen testID={"resource-screen-" + resource}>
     <FlatList data={filtered} keyExtractor={item => resource + item.id} contentContainerStyle={common.content}
       contentInsetAdjustmentBehavior="automatic" keyboardShouldPersistTaps="handled"
-      refreshControl={<RefreshControl refreshing={result.refreshing} onRefresh={refresh} tintColor={colors.cyan} />}
+      refreshControl={<RefreshControl refreshing={result.refreshing} onRefresh={refresh} tintColor={colors.accent} />}
       ListHeaderComponent={<View style={{ gap: spacing.lg }}>
         <View style={{ flexDirection: 'row', gap: 5, padding: 5, backgroundColor: colors.surface, borderRadius: radii.md, borderCurve: 'continuous', borderWidth: 1, borderColor: colors.border }}>
           {group.map(key => <Pressable key={key} accessibilityRole="tab" accessibilityLabel={resources[key].title} accessibilityState={{ selected: key === resource }}
             onPress={() => onSelect(key)} style={{ flex: 1, minHeight: 46, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 8, padding: 10, borderRadius: 11, backgroundColor: key === resource ? colors.raised : 'transparent' }}>
-            <AppIcon name={resources[key].icon} size={18} color={key === resource ? colors.cyan : colors.muted} />
-            <Text style={{ color: key === resource ? colors.cyan : colors.muted, fontSize: 13, fontWeight: '600' }}>{resources[key].title}</Text>
+            <AppIcon name={resources[key].icon} size={18} color={key === resource ? colors.accent : colors.muted} />
+            <Text style={{ color: key === resource ? colors.accent : colors.muted, fontSize: 14, fontWeight: '700' }}>{resources[key].title}</Text>
           </Pressable>)}
         </View>
         <View style={{ ...common.card, gap: 16 }}>
-          <View style={common.row}><View style={common.iconBox}><AppIcon name={definition.icon} color={colors.cyan} /></View>
-            <View style={{ flex: 1, gap: 4 }}><Text style={common.eyebrow}>{resource === 'events' || resource === 'alerts' ? 'REGISTRO OPERACIONAL' : 'INVENTÁRIO DA MISSÃO'}</Text><Text style={common.subtitle}>{definition.subtitle}</Text></View>
+          <View style={common.row}><View style={common.iconBox}><AppIcon name={definition.icon} color={colors.accent} /></View>
+            <View style={{ flex: 1, gap: 4 }}><Text style={common.eyebrow}>{resource === 'events' || resource === 'reports' ? 'OCORRÊNCIAS DA CIDADE' : 'MONITORAMENTO URBANO'}</Text><Text style={common.subtitle}>{definition.subtitle}</Text></View>
           </View>
           <View style={common.row}>
-            <Button title={resource === 'readings' ? 'Nova leitura' : 'Novo ' + definition.singular} onPress={() => router.push({ pathname: '/create', params: { resource } })} icon="add" />
+            <Button title={definition.newLabel} onPress={() => router.push({ pathname: '/create', params: { resource } })} icon="add" />
             <Button title="Atualizar" secondary icon="refresh-outline" onPress={refresh} disabled={result.loading || result.refreshing} />
           </View>
         </View>
@@ -56,10 +56,11 @@ export function ResourceScreen({ group, selected: resource, onSelect }: { group:
         </View>
         <View style={{ ...common.row, justifyContent: 'space-between' }}>
           <Text selectable style={{ ...common.subtitle, fontSize: 12 }}>{result.loading ? 'Consultando registros…' : query ? filtered.length + ' resultado(s) em ' + result.items.length + ' carregados' : result.total + ' registro(s)'}</Text>
-          <Text style={{ color: colors.dim, fontSize: 10 }}>MAIS RECENTES PRIMEIRO</Text>
+          <Text style={{ color: colors.dim, fontSize: 11 }}>MAIS RECENTES PRIMEIRO</Text>
         </View>
         {!!result.error && <ErrorNotice message={result.error} onRetry={refresh} />}
-        {related.loading && !result.loading && <Text style={common.subtitle}>Consultando componentes relacionados…</Text>}
+        {related.loading && !result.loading && <Text style={common.subtitle}>Consultando nomes relacionados…</Text>}
+        {resource === 'reports' && <View style={{ ...common.row, gap: 8 }}><AppIcon name="privacy" color={colors.blue} size={18} /><Text style={{ ...common.subtitle, flex: 1 }}>Relatos são anônimos: não guardamos nome, contato nem localização exata de quem enviou.</Text></View>}
         {!!related.error && <View style={{ ...common.card, gap: spacing.sm }}>
           <Text accessibilityRole="alert" selectable style={common.subtitle}>{related.error}</Text>
           <Button title="Atualizar referências" secondary icon="refresh-outline" onPress={() => { void related.reload(); }} />

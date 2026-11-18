@@ -5,8 +5,8 @@ import { NativeEnumPicker } from '@/components/native-enum-picker';
 import { colors } from '@/theme';
 import type { Option } from '@/features/resources';
 
-export function SelectField({ label, options, value, onChange, disabled = false, error, nativePicker = false }: {
-  label: string; options: Option[]; value: string; onChange: (value: string) => void; disabled?: boolean; error?: string; nativePicker?: boolean;
+export function SelectField({ label, options, value, onChange, disabled = false, error, nativePicker = false, required = true }: {
+  label: string; options: Option[]; value: string; onChange: (value: string) => void; disabled?: boolean; error?: string; nativePicker?: boolean; required?: boolean;
 }) {
   const [visible, setVisible] = useState(false);
   const [search, setSearch] = useState('');
@@ -14,12 +14,12 @@ export function SelectField({ label, options, value, onChange, disabled = false,
   const filtered = useMemo(() => options.filter(option => option.label.toLocaleLowerCase('pt-BR').includes(search.toLocaleLowerCase('pt-BR'))), [options, search]);
   if (nativePicker && process.env.EXPO_OS !== 'web') return <NativeEnumPicker label={label} options={options} value={value} onChange={onChange} disabled={disabled} error={error} />;
   return <View style={{ gap: 8 }}>
-    <Text style={styles.label}>{label} <Text style={{ color: colors.cyan }}>*</Text></Text>
+    <Text style={styles.label}>{label}{required && <Text style={{ color: colors.accent }}> *</Text>}</Text>
     <Pressable accessibilityRole="button" accessibilityLabel={label + ': ' + (selected?.label ?? 'Selecione')}
       accessibilityState={{ disabled }} disabled={disabled}
       onPress={() => { setSearch(''); setVisible(true); }}
       style={[styles.input, !!error && { borderColor: colors.red }, disabled && { opacity: 0.5 }]}>
-      <Text style={{ color: selected ? colors.text : colors.muted, flex: 1 }}>{selected?.label ?? 'Selecione um registro'}</Text>
+      <Text style={{ color: selected ? colors.text : colors.muted, flex: 1 }}>{selected?.label ?? 'Selecione uma opção'}</Text>
       <AppIcon name="chevron-down" size={18} color={colors.muted} />
     </Pressable>
     {error && <Text selectable style={styles.error}>{error}</Text>}
@@ -36,8 +36,8 @@ export function SelectField({ label, options, value, onChange, disabled = false,
             ListEmptyComponent={<Text style={{ color: colors.muted, padding: 20 }}>Nenhuma opção encontrada.</Text>}
             renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityState={{ selected: item.value === value }}
               onPress={() => { onChange(item.value); setVisible(false); }} style={styles.option}>
-              <Text style={{ color: item.value === value ? colors.cyan : colors.text, flex: 1, lineHeight: 21 }}>{item.label}</Text>
-              {item.value === value && <AppIcon name="checkmark-circle" size={20} color={colors.cyan} />}
+              <Text style={{ color: item.value === value ? colors.accent : colors.text, flex: 1, lineHeight: 21 }}>{item.label}</Text>
+              {item.value === value && <AppIcon name="checkmark-circle" size={20} color={colors.accent} />}
             </Pressable>} />
         </View>
       </View>

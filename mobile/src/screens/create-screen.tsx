@@ -9,11 +9,13 @@ import { AppIcon } from '@/components/app-icon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, ErrorNotice, Loading, common } from '@/components/ui';
 import { SelectField } from '@/components/select-field';
-import { resources, type Option } from '@/features/resources';
+import { labels, resources, type Option } from '@/features/resources';
 import { buildPayload, FormValidationError, initialValues } from '@/features/validation';
 import { api } from '@/services/api';
+import { useMonitoring } from '@/providers/monitoring-provider';
 import { ApiError } from '@/services/client';
 import { colors } from '@/theme';
+import { ConnectionBanner } from '@/components/status-banners';
 const SUCCESS_ENTER = FadeIn.duration(220).reduceMotion(ReduceMotion.System);
 
 export function CreateScreen({ resource }: { resource: Resource }) {
@@ -31,6 +33,7 @@ export function CreateScreen({ resource }: { resource: Resource }) {
   const savingRef = useRef(false);
   const version = useRef(0);
   const relation = definition.fields.find(field => field.kind === 'relation');
+  const { revision } = useMonitoring();
 
   const loadOptions = useCallback(async () => {
     if (!relation?.relation) return;
@@ -39,13 +42,13 @@ export function CreateScreen({ resource }: { resource: Resource }) {
     try {
       const records = await api.all(relation.relation);
       if (current === version.current) setOptions(records.map(record => ({
-        label: ('name' in record ? record.name : 'Registro') + ' · #' + record.id,
+        label: ('name' in record ? record.name : 'Registro') + ('unit' in record ? ' (' + record.unit + ')' : '') + ' · #' + record.id,
         value: String(record.id),
       })));
     } catch (error) { if (current === version.current) setOptionsError(error instanceof Error ? error.message : 'Não foi possível carregar opções.'); }
     finally { if (current === version.current) setLoadingOptions(false); }
   }, [relation]);
-  useEffect(() => { void loadOptions(); return () => { version.current++; }; }, [loadOptions]);
+  useEffect(() => { void loadOptions(); return () => { version.current++; }; }, [loadOptions, revision]);
 
   const change = (key: string, value: string) => {
     setValues(previous => ({ ...previous, [key]: value }));
@@ -62,6 +65,7 @@ export function CreateScreen({ resource }: { resource: Resource }) {
       savingRef.current = true; setSaving(true);
       const created = await api.create(resource, payload);
       setSavedLabel('name' in created ? created.name : 'title' in created ? created.title
+        : 'riskType' in created ? 'Relato anônimo de ' + (labels[created.riskType] ?? created.riskType).toLocaleLowerCase('pt-BR')
         : 'Leitura de ' + (options.find(option => option.value === String(created.sensorId))?.label ?? 'sensor #' + created.sensorId));
       setSavedId(created.id);
       if (process.env.EXPO_OS === 'ios') void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
@@ -85,10 +89,15 @@ export function CreateScreen({ resource }: { resource: Resource }) {
   </View>;
 
   return <View style={styles.page}>
-    <Stack.Screen options={{ title: resource === 'readings' ? 'Nova leitura' : 'Novo ' + definition.singular }} />
+    <Stack.Screen options={{ title: definition.newLabel }} />
+    <ConnectionBanner />
       <KeyboardAwareScrollView bottomOffset={24} contentInsetAdjustmentBehavior="automatic" contentContainerStyle={[common.content, { paddingBottom: insets.bottom + 40 }]} keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag">
-        <View style={{ gap: 8 }}><Text style={common.eyebrow}>NOVO REGISTRO</Text><Text style={common.title}>Dados do registro</Text><Text style={common.subtitle}>Preencha os campos para enviar à missão. Todos os campos são obrigatórios.</Text></View>
-        {resource === 'alerts' && <View style={common.card}><Text style={common.subtitle}>Este cadastro registra um alerta crítico. Escolha se ele está ativo ou já foi resolvido.</Text></View>}
+        <View style={{ gap: 8 }}><Text style={common.eyebrow}>NOVO REGISTRO</Text><Text style={common.title}>Dados do registro</Text><Text style={common.subtitle}>Preencha os campos para enviar à plataforma. Todos os campos são obrigatórios.</Text></View>
+        {resource === 'reports' && <View testID="privacy-notice" style={{ ...common.card, flexDirection: 'row', gap: 12, borderColor: colors.blue + '55', backgroundColor: colors.infoSoft }}>
+          <AppIcon name="privacy" color={colors.blue} />
+          <Text style={{ ...common.subtitle, flex: 1, color: colors.text }}>Seu relato é anônimo. Não informe nome, telefone, e-mail, CPF ou o endereço da sua casa: o app e o servidor recusam esses dados. A origem será registrada como comunitária, com confiança inicial média (40/100).</Text>
+        </View>}
+        {resource !== 'reports' && <View style={common.card}><Text style={common.subtitle}>Informe a origem do dado (sensor, base pública ou relato comunitário) e o quanto ele é confiável, de 0 a 100. Esses dois valores entram no cálculo da prioridade dos alertas.</Text></View>}
         {!!optionsError && <ErrorNotice message={optionsError} onRetry={loadOptions} />}
         {loadingOptions && <Loading label="Consultando registros disponíveis…" />}
         {relation && !loadingOptions && !optionsError && options.length === 0 && <View style={common.card}>
@@ -101,18 +110,19 @@ export function CreateScreen({ resource }: { resource: Resource }) {
               value={values[field.key]} options={field.options ?? options} onChange={value => change(field.key, value)}
               nativePicker={field.kind === 'select'} error={errors[field.key]} disabled={saving || (field.kind === 'relation' && (loadingOptions || !!optionsError || options.length === 0))} />;
             return <View key={field.key} style={{ gap: 8 }}>
-              <Text style={styles.label}>{field.label} <Text style={{ color: colors.cyan }}>*</Text></Text>
+              <Text style={styles.label}>{field.label} <Text style={{ color: colors.accent }}>*</Text></Text>
               <TextInput accessibilityLabel={field.label} editable={!saving}
                 value={values[field.key]} onChangeText={value => change(field.key, value)}
                 placeholder={field.placeholder} placeholderTextColor={colors.muted} maxLength={field.max}
                 multiline={field.multiline} autoCapitalize={field.kind === 'date' ? 'none' : 'sentences'}
-                autoCorrect={field.kind === 'text'} keyboardType={field.kind === 'decimal' && process.env.EXPO_OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
+                autoCorrect={field.kind === 'text'} keyboardType={field.kind === 'integer' ? 'number-pad' : field.kind === 'decimal' && process.env.EXPO_OS === 'ios' ? 'numbers-and-punctuation' : 'default'}
                 style={[styles.input, field.multiline && { minHeight: 100, textAlignVertical: 'top' }, !!errors[field.key] && { borderColor: colors.red }]} />
               {field.kind === 'date' && <View style={{ gap: 8 }}>
                 <Text selectable style={styles.help}>ISO 8601 com fuso. A data não pode estar no futuro.</Text>
                 <Button title="Usar horário atual" secondary icon="time-outline" disabled={saving} onPress={() => change(field.key, new Date().toISOString())} />
               </View>}
               {field.kind === 'decimal' && <Text selectable style={styles.help}>Aceita negativos e vírgula ou ponto decimal. Não use separador de milhar.</Text>}
+              {!!field.help && <Text selectable style={styles.help}>{field.help}</Text>}
               {!!errors[field.key] && <Text selectable accessibilityRole="alert" style={styles.fieldError}>{errors[field.key]}</Text>}
             </View>;
           })}
@@ -129,7 +139,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
   label: { color: colors.text, fontSize: 14, fontWeight: '600' },
   input: { backgroundColor: colors.background, borderColor: colors.border, borderWidth: 1, borderRadius: 12, borderCurve: 'continuous', padding: 14, color: colors.text, minHeight: 50, fontSize: 15, lineHeight: 23 },
-  help: { color: colors.muted, fontSize: 12, lineHeight: 18 },
+  help: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   fieldError: { color: colors.red, fontSize: 13, lineHeight: 20 },
 });
 

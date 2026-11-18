@@ -3,7 +3,7 @@ import { Text, View } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient, Line, Polygon, Polyline, Stop } from 'react-native-svg';
 import { api } from '@/services/api';
 import type { EntityMap } from '@/types/api';
-import { chartGeometry, prepareReadings } from '@/features/mission-metrics';
+import { chartGeometry, prepareReadings } from '@/features/readings-chart';
 import { SelectField } from '@/components/select-field';
 import { Button, EmptyState, ErrorNotice, Loading, SectionHeading, common } from '@/components/ui';
 import { colors } from '@/theme';
@@ -40,26 +40,26 @@ export function TelemetryPanel({ revision, onOpen }: { revision: string; onOpen:
   const chart = chartGeometry(readings);
   const format = (value: number) => value.toLocaleString('pt-BR', { maximumFractionDigits: 6 });
   return <View style={common.card}>
-    <SectionHeading title="Telemetria" caption="Medições registradas · uma unidade por série" icon="pulse-outline" />
+    <SectionHeading title="Leituras dos sensores" caption="Últimas medições de um sensor · uma unidade por série" icon="pulse-outline" />
     {sensorError ? <ErrorNotice message={sensorError} onRetry={loadSensors} /> : loadingSensors ? <Loading label="Carregando sensores…" />
-      : !sensors.length ? <EmptyState title="Sem sensores cadastrados" description="Adicione um sensor e suas medições para visualizar a telemetria." />
+      : !sensors.length ? <EmptyState title="Sem sensores cadastrados" description="Adicione um sensor e suas medições para acompanhar a evolução." />
       : <>
-        <SelectField label="Sensor em análise" options={sensors.map(sensor => ({ label: sensor.name + ' · ' + sensor.unit, value: String(sensor.id) }))}
+        <SelectField label="Sensor em análise" required={false} options={sensors.map(sensor => ({ label: sensor.name + ' · ' + sensor.unit, value: String(sensor.id) }))}
           value={sensorId} onChange={value => { if (value !== sensorId) { request.current++; setReadings([]); setError(''); setLoading(true); setSensorId(value); } }} />
         {error && <ErrorNotice message={error} onRetry={load} />}
         {loading ? <Loading label="Consultando medições…" /> : chart ? <>
           <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <Text selectable style={{ color: colors.text, fontSize: 34, fontWeight: '600', fontVariant: ['tabular-nums'], letterSpacing: -1 }}>{format(chart.latest.value)}</Text>
-            <Text selectable style={{ color: colors.cyan, fontSize: 16 }}>{sensor?.unit}</Text>
+            <Text selectable style={{ color: colors.accent, fontSize: 16 }}>{sensor?.unit}</Text>
             <Text style={{ ...common.subtitle, fontSize: 11 }}>última medição da amostra</Text>
           </View>
           <View accessible accessibilityLabel={'Gráfico de ' + readings.length + ' medições de ' + sensor?.name} style={{ height: 154 }}>
             <Svg width="100%" height="100%" viewBox="0 0 320 144">
-              <Defs><LinearGradient id="telemetry-fill" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={colors.cyan} stopOpacity=".16" /><Stop offset="1" stopColor={colors.cyan} stopOpacity="0" /></LinearGradient></Defs>
+              <Defs><LinearGradient id="telemetry-fill" x1="0" y1="0" x2="0" y2="1"><Stop offset="0" stopColor={colors.accent} stopOpacity=".16" /><Stop offset="1" stopColor={colors.accent} stopOpacity="0" /></LinearGradient></Defs>
               {[20, 72, 124].map(y => <Line key={y} x1={0} x2={320} y1={y} y2={y} stroke={colors.border} strokeDasharray="3 5" />)}
               {readings.length > 1 && <><Polygon points={chart.points[0].x + ',144 ' + chart.line + ' ' + chart.points[chart.points.length - 1].x + ',144'} fill="url(#telemetry-fill)" />
-                <Polyline points={chart.line} fill="none" stroke={colors.cyan} strokeWidth={2} strokeLinejoin="round" /></>}
-              {chart.points.map((point, index) => <Circle key={readings[index].id} cx={point.x} cy={point.y} r={3} fill={colors.cyan} stroke={colors.surface} strokeWidth={1.5} />)}
+                <Polyline points={chart.line} fill="none" stroke={colors.accent} strokeWidth={2} strokeLinejoin="round" /></>}
+              {chart.points.map((point, index) => <Circle key={readings[index].id} cx={point.x} cy={point.y} r={3} fill={colors.accent} stroke={colors.surface} strokeWidth={1.5} />)}
             </Svg>
           </View>
           <View style={{ ...common.row, justifyContent: 'space-between' }}>
