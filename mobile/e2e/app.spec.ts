@@ -1,114 +1,91 @@
 import { expect, test } from '@playwright/test';
+import { bottomTab, guardApi, openApp, visible } from './helpers';
 
-// Em testes isolados, nem uma configuração/cache incorreta pode enviar dados
-// ao backend de desenvolvimento. Rotas fora da base configurada são bloqueadas.
-test.beforeEach(async ({ page }) => {
-  const apiUrl = process.env.EXPO_PUBLIC_API_URL;
-  if (!apiUrl) return;
-  const allowedBase = apiUrl.replace(/\/+$/, '') + '/';
-  await page.route('**/api/**', route => route.request().url().startsWith(allowedBase)
-    ? route.continue() : route.abort('blockedbyclient'));
-});
+test.beforeEach(async ({ page }) => { await guardApi(page); });
 
-test('dashboard real, sete telas, formulários e cadastro de módulo', async ({ page }, testInfo) => {
+test('painel, notificação, alertas priorizados com origem e confiança e navegação', async ({ page }, testInfo) => {
   const runtimeErrors: string[] = [];
   page.on('pageerror', error => runtimeErrors.push(error.message));
   page.on('console', message => { if (/Invalid DOM property|non-boolean attribute/.test(message.text())) runtimeErrors.push(message.text()); });
-  await page.goto('/');
-  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
-  await expect(page.getByText('Visão da missão', { exact: true })).toBeVisible();
-  await expect(page.getByText('Última consulta:', { exact: false })).toBeVisible();
-  const missionHeading = page.getByText('SITUAÇÃO DA MISSÃO', { exact: true });
-  await missionHeading.scrollIntoViewIfNeeded();
-  await expect(missionHeading).toBeInViewport();
-  await expect(page.getByRole('button', { name: /^Sensores: / })).toBeVisible();
-  const tabLabel = await page.getByText('Visão geral', { exact: true }).boundingBox();
-  expect(tabLabel).not.toBeNull();
-  expect(tabLabel!.height).toBeGreaterThanOrEqual(12);
-  expect(tabLabel!.y + tabLabel!.height).toBeLessThanOrEqual(page.viewportSize()!.height);
-  await page.screenshot({ path: testInfo.outputPath('dashboard.png'), fullPage: true });
+  await openApp(page);
 
-  await page.getByRole('button', { name: /^Sensores: / }).click();
-  await expect(page.getByText('Instrumentos conectados à missão', { exact: true })).toBeVisible();
-  await page.getByText('Novo sensor', { exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Tipo', exact: true })).toBeVisible();
-  await page.getByText('Cancelar', { exact: true }).click();
+  await expect(page.getByText('Painel da cidade', { exact: true })).toBeVisible();
+  const city = visible(page, 'city-status');
+  await expect(city.getByText('SITUAÇÃO DA CIDADE', { exact: true })).toBeVisible();
+  await expect(city.getByText('Crítico', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /^Bairros monitorados: \d+$/ })).toBeVisible();
+  await expect(page.getByTestId('dashboard-screen').getByTestId('top-alerts').getByTestId('alert-card')).toHaveCount(3);
 
-  await page.getByRole('tab').filter({ hasText: 'Leituras' }).click();
-  await page.getByText('Nova leitura', { exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Valor da medição', exact: true })).toBeVisible();
-  await page.getByText('Cancelar', { exact: true }).click();
-  await expect(page.getByText('Histórico de medições recebidas', { exact: true })).toBeVisible();
+  // Notificação no app para os alertas de prioridade alta e crítica.
+  const notification = visible(page, 'alert-notification');
+  await expect(notification).toContainText('novos alertas prioritários');
+  await page.screenshot({ path: testInfo.outputPath('painel.png'), fullPage: true });
+  await notification.getByRole('button', { name: 'Ver alertas', exact: true }).click();
+  await expect(page.getByTestId('alert-notification')).toHaveCount(0);
 
-  await page.getByText('Visão geral', { exact: true }).click();
-  await page.getByRole('button', { name: /^Sensores: / }).click();
-  await expect(page.getByText('Instrumentos conectados à missão', { exact: true })).toBeVisible();
+  await expect(page.getByText('ALERTAS PRIORIZADOS', { exact: true })).toBeVisible();
+  const cards = page.getByTestId('alerts-screen').getByTestId('alert-card');
+  await expect(cards).toHaveCount(5);
+  const first = cards.first();
+  await expect(first.getByText('Ribeirão Claro acima da cota de alerta', { exact: true })).toBeVisible();
+  await expect(first.getByTestId('source-badge').getByText('Sensor', { exact: true })).toBeVisible();
+  await expect(first.getByText('Confiança alta · 90/100', { exact: true })).toBeVisible();
+  await expect(first.getByText('Prioridade: Crítica', { exact: true })).toBeVisible();
+  await expect(first.getByText('Por que esta prioridade?', { exact: true })).toBeVisible();
+  await expect(cards.last().getByText('Comunitário', { exact: true })).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath('alertas.png'), fullPage: true });
+  await page.getByRole('tab', { name: 'Falta de água', exact: true }).click();
+  await expect(cards).toHaveCount(1);
+  await page.getByRole('tab', { name: 'Todos', exact: true }).click();
+  await expect(cards).toHaveCount(5);
 
-  await page.getByText('Estrutura', { exact: true }).click();
-  await page.getByText('Novo módulo', { exact: true }).click();
-  await page.getByText('Salvar registro', { exact: true }).click();
-  await expect(page.getByText('Revise os campos destacados antes de enviar.', { exact: true })).toBeVisible();
-  const name = 'Módulo UI ' + testInfo.project.name + ' ' + Date.now();
-  await page.getByRole('textbox', { name: 'Nome', exact: true }).fill(name);
-  await page.getByRole('textbox', { name: 'Descrição', exact: true }).fill('Cadastro real pelo formulário Expo Web');
-  await page.route('**/api/modules', route => route.request().method() === 'POST' ? route.abort('failed') : route.continue());
-  await page.getByText('Salvar registro', { exact: true }).click();
-  await expect(page.getByText('Não foi possível confirmar o cadastro.', { exact: false })).toBeVisible();
-  await expect(page.getByRole('textbox', { name: 'Nome', exact: true })).toHaveValue(name);
-  await page.unroute('**/api/modules');
-  await page.getByText('Salvar registro', { exact: true }).click();
-  await expect(page.getByText('Cadastro confirmado', { exact: true })).toBeVisible();
-  await page.getByText('Voltar à lista', { exact: true }).click();
-  await expect(page.getByText(name, { exact: true })).toBeVisible();
-  await page.getByRole('textbox', { name: 'Buscar registros', exact: true }).fill('zzzz-sem-correspondencia-529');
-  await expect(page.getByText('Nenhum resultado encontrado', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Limpar busca', exact: true }).click();
-  await expect(page.getByText(name, { exact: true })).toBeVisible();
+  await bottomTab(page, /^Ocorrências/).click();
+  await expect(page.getByText('Riscos identificados na cidade', { exact: true })).toBeVisible();
+  await expect(page.getByTestId('resource-screen-events').getByTestId('resource-card').first().getByTestId('source-badge')).toBeVisible();
+  await page.getByRole('tab', { name: 'Relatos', exact: true }).click();
+  await expect(page.getByText('Relatos são anônimos', { exact: false })).toBeVisible();
 
-  await page.getByRole('tab').filter({ hasText: 'Sistemas' }).click();
-  await page.getByText('Novo sistema', { exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Módulo computacional:/ })).toBeVisible();
-  await page.getByText('Cancelar', { exact: true }).click();
-
-  await page.getByText('Operações', { exact: true }).click();
-  await page.getByText('Novo evento', { exact: true }).click();
-  await expect(page.getByRole('textbox', { name: 'Data e hora do ocorrido', exact: true })).toBeVisible();
-  await page.getByText('Cancelar', { exact: true }).click();
-  await page.getByRole('tab').filter({ hasText: 'Alertas' }).click();
-  await page.getByText('Novo alerta', { exact: true }).click();
-  await expect(page.getByRole('button', { name: /^Situação do alerta:/ })).toBeVisible();
-  await page.getByText('Cancelar', { exact: true }).click();
-  await expect(page.getByText('Ocorrências críticas da missão', { exact: true })).toBeVisible();
+  await bottomTab(page, /^Monitoramento/).click();
+  await expect(page.getByTestId('resource-screen-regions').getByTestId('resource-card').getByText('Várzea do Ribeirão', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Sensores', exact: true }).click();
+  const sensor = page.getByTestId('resource-screen-sensors').getByTestId('resource-card').filter({ hasText: 'Pluviômetro da Várzea' });
+  await expect(sensor.getByTestId('related-reference').getByText('Várzea do Ribeirão', { exact: true })).toBeVisible();
+  await page.getByRole('tab', { name: 'Leituras', exact: true }).click();
+  await expect(page.getByText('Medições recebidas dos sensores', { exact: true })).toBeVisible();
   expect(runtimeErrors).toEqual([]);
 });
 
-
-test('falha de consulta e recuperação com resposta real', async ({ page }) => {
-  await page.route('**/api/mission/status', route => route.abort('failed'));
-  await page.goto('/');
-  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
-  await expect(page.getByText('Não foi possível acessar a API.', { exact: false })).toBeVisible();
-  await expect(page.getByText('Nenhum registro por aqui', { exact: true })).toHaveCount(0);
-  await page.unroute('**/api/mission/status');
-  await page.getByRole('button', { name: 'Tentar novamente', exact: true }).click();
-  await expect(page.getByText('Última consulta:', { exact: false })).toBeVisible();
+test('relato anônimo: dados pessoais são bloqueados antes do envio e relato válido é salvo', async ({ page }) => {
+  const reportPosts: string[] = [];
+  page.on('request', request => { if (request.method() === 'POST' && request.url().endsWith('/reports')) reportPosts.push(request.postData() ?? ''); });
+  await openApp(page);
+  await page.getByRole('button', { name: 'Enviar relato anônimo', exact: true }).click();
+  await expect(page.getByTestId('privacy-notice')).toBeVisible();
+  const region = page.getByRole('button', { name: /^Bairro \/ região:/ });
+  await expect(region).toBeEnabled();
+  await region.click();
+  await page.getByText(/^Várzea do Ribeirão · #\d+$/).click();
+  const text = page.getByRole('textbox', { name: 'Relato', exact: true });
+  await text.fill('Rua alagada, me liguem no (11) 98765-4321');
+  await page.getByRole('button', { name: 'Salvar registro', exact: true }).click();
+  await expect(page.getByText('Remova dados pessoais do relato', { exact: false })).toBeVisible();
+  expect(reportPosts).toEqual([]);
+  await text.fill('Água na altura da canela perto da escola.');
+  await page.getByRole('button', { name: 'Salvar registro', exact: true }).click();
+  await expect(page.getByText('Cadastro confirmado', { exact: true })).toBeVisible();
+  await expect(page.getByText('Relato anônimo de alagamento', { exact: true })).toBeVisible();
+  expect(reportPosts).toHaveLength(1);
+  expect(Object.keys(JSON.parse(reportPosts[0])).sort()).toEqual(['description', 'occurredAt', 'regionId', 'riskType']);
 });
 
-test('seletor pesquisável e retorno sem resultados', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByTestId('startup-splash')).toBeVisible({ timeout: 20000 });
-  await expect(page.getByTestId('startup-splash')).toHaveCount(0, { timeout: 12000 });
-  await expect(page.getByText('Última consulta:', { exact: false })).toBeVisible();
-  await page.getByRole('button', { name: /^Sensores: / }).click();
-  await page.getByRole('button', { name: 'Novo sensor', exact: true }).click();
-  const selection = page.getByRole('button', { name: /^Módulo computacional:/ });
-  await expect(selection).toBeEnabled();
-  await selection.click();
-  await page.getByRole('textbox', { name: 'Buscar opções', exact: true }).fill('zzzzz-nenhum-registro');
-  await expect(page.getByText('Nenhuma opção encontrada.', { exact: true })).toBeVisible();
-  await page.getByRole('button', { name: 'Fechar seleção', exact: true }).click();
+test('formulário de evento exige origem e confiança entre 0 e 100', async ({ page }) => {
+  await openApp(page);
+  await bottomTab(page, /^Ocorrências/).click();
+  await page.getByRole('button', { name: 'Novo evento', exact: true }).click();
+  await expect(page.getByRole('button', { name: /^Origem do dado:/ })).toBeVisible();
+  await page.getByRole('textbox', { name: 'Confiança (0 a 100)', exact: true }).fill('150');
+  await page.getByRole('button', { name: 'Salvar registro', exact: true }).click();
+  await expect(page.getByText('Use um valor entre 0 e 100.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
-  await expect(page.getByText('Instrumentos conectados à missão', { exact: true })).toBeVisible();
+  await expect(page.getByText('Riscos identificados na cidade', { exact: true })).toBeVisible();
 });

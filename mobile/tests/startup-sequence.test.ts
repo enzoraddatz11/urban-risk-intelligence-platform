@@ -3,10 +3,10 @@ import { getStartupFrame, STARTUP_DURATION_MS } from '@/features/startup-sequenc
 
 describe('sequência institucional de sete segundos', () => {
   it.each([
-    [0, 'Inicializando sistemas...'], [1999, 'Inicializando sistemas...'],
-    [2000, 'Conectando telemetria...'], [3999, 'Conectando telemetria...'],
-    [4000, 'Verificando módulos da missão...'], [5999, 'Verificando módulos da missão...'],
-    [6000, 'Missão pronta.'], [7000, 'Missão pronta.'],
+    [0, 'Carregando mapa da cidade...'], [1999, 'Carregando mapa da cidade...'],
+    [2000, 'Conectando sensores urbanos...'], [3999, 'Conectando sensores urbanos...'],
+    [4000, 'Analisando riscos por bairro...'], [5999, 'Analisando riscos por bairro...'],
+    [6000, 'Plataforma pronta.'], [7000, 'Plataforma pronta.'],
   ])('seleciona a mensagem no instante %i ms', (elapsed, message) => {
     expect(getStartupFrame(elapsed).message).toBe(message);
   });
