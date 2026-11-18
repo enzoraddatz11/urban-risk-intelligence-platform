@@ -1,8 +1,8 @@
 spring:
   application:
-    name: space-mission-control
+    name: urban-risk-intelligence
   datasource:
-    url: ${DB_URL:jdbc:h2:file:./data/space-mission}
+    url: ${DB_URL:jdbc:h2:file:./data/urban-risk}
     username: ${DB_USERNAME:sa}
     password: ${DB_PASSWORD:}
   jpa:
