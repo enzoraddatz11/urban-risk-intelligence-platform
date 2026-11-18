@@ -34,9 +34,6 @@ Thumbs.db
 *.temp.db
 # Ferramentas locais
 .tools/
-.agents/
-.codex/
-skills-lock.json
 # Expo / Node e artefatos gerados
 **/node_modules/
 **/.expo/

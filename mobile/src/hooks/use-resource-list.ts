@@ -1,10 +1,12 @@
 import { useCallback, useRef, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { api } from '@/services/api';
-import type { MissionEntity, Resource } from '@/types/api';
+import { useMonitoring } from '@/providers/monitoring-provider';
+import type { UrbanEntity, Resource } from '@/types/api';
 
 export function useResourceList(resource: Resource) {
-  const [items, setItems] = useState<MissionEntity[]>([]);
+  const { revision } = useMonitoring();
+  const [items, setItems] = useState<UrbanEntity[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -38,7 +40,7 @@ export function useResourceList(resource: Resource) {
   useFocusEffect(useCallback(() => {
     void reload(true);
     return () => { generation.current++; };
-  }, [reload]));
+  }, [reload, revision]));
 
   const loadMore = async () => {
     if (!hasMore || busyMore.current || loading || refreshing) return;
